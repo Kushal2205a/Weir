@@ -6,6 +6,10 @@ Loads Weir proxy configuration from environment variables.
 import os
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
+
+load_dotenv()  # loads proxy/.env into os.environ before any getenv() call
+
 
 @dataclass(frozen=True)
 class ProxyConfig:
@@ -16,6 +20,9 @@ class ProxyConfig:
     target_db: str
     target_user: str
     target_password: str
+    supabase_url: str
+    supabase_key: str
+    approval_timeout: int
 
     def __str__(self) -> str:
         return (
@@ -36,6 +43,9 @@ def load_config() -> ProxyConfig:
         WEIR_TARGET_DB        – upstream database name      (default: postgres)
         WEIR_TARGET_USER      – upstream database user      (default: postgres)
         WEIR_TARGET_PASSWORD  – upstream database password  (default: "")
+        WEIR_SUPABASE_URL     – Supabase project URL        (default: "")
+        WEIR_SUPABASE_KEY     – Supabase anon/service key   (default: "")
+        WEIR_APPROVAL_TIMEOUT – seconds before auto-timeout (default: 60)
     """
     return ProxyConfig(
         listen_host=os.getenv("WEIR_LISTEN_HOST", "0.0.0.0"),
@@ -45,4 +55,7 @@ def load_config() -> ProxyConfig:
         target_db=os.getenv("WEIR_TARGET_DB", "postgres"),
         target_user=os.getenv("WEIR_TARGET_USER", "postgres"),
         target_password=os.getenv("WEIR_TARGET_PASSWORD", ""),
+        supabase_url=os.getenv("WEIR_SUPABASE_URL", ""),
+        supabase_key=os.getenv("WEIR_SUPABASE_KEY", ""),
+        approval_timeout=int(os.getenv("WEIR_APPROVAL_TIMEOUT", "60")),
     )

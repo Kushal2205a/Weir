@@ -17,6 +17,7 @@ import sqlglot.expressions as exp
 
 from config import ProxyConfig
 from dry_run import run_dry_run
+from approval import request_approval
 
 log = logging.getLogger("weir.interceptor")
 
@@ -166,9 +167,9 @@ async def intercept_pipe(
     """
     Replacement for pipe() in the client→server direction.
 
-    Reads each chunk from *client_reader*, inspects it for SQL Query messages,
-    runs a dry-run preview for any destructive query, then forwards the original
-    bytes unchanged to *server_writer*. Actual hold-and-approve arrives in Task 0.5.
+    Reads each chunk, classifies any SQL queries inside it, runs a dry-run
+    for destructive ones, then waits for developer approval before forwarding.
+    Non-destructive chunks are forwarded immediately.
     """
     try:
         while True:
@@ -177,19 +178,34 @@ async def intercept_pipe(
                 log.debug("%s  EOF", label)
                 break
 
+            should_forward = True
+
             for sql in parse_queries(data):
                 classification, query_type = classify(sql)
                 if classification == DESTRUCTIVE:
                     log.warning("INTERCEPTED %s: %.120s", query_type, sql)
-                    result = await run_dry_run(sql, query_type, cfg)
+                    dry = await run_dry_run(sql, query_type, cfg)
                     log.warning(
                         "DRY RUN RESULT: affected=%d tables=%s",
-                        result["affected_count"],
-                        result["tables_affected"],
+                        dry["affected_count"],
+                        dry["tables_affected"],
                     )
+                    decision = await request_approval(sql, query_type, dry, cfg)
 
-            server_writer.write(data)
-            await server_writer.drain()
+                    if decision == "approved":
+                        log.info("APPROVED — forwarding query")
+                    elif decision == "blocked":
+                        log.warning("BLOCKED — query will not reach PostgreSQL")
+                        should_forward = False
+                        break
+                    elif decision == "timeout":
+                        log.warning("TIMEOUT — auto-blocked after %ds", cfg.approval_timeout)
+                        should_forward = False
+                        break
+
+            if should_forward:
+                server_writer.write(data)
+                await server_writer.drain()
 
     except (asyncio.IncompleteReadError, ConnectionResetError) as exc:
         log.debug("%s  connection reset: %s", label, exc)
