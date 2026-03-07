@@ -1,3 +1,23 @@
+"""
+proxy/main.py
+Weir — PostgreSQL Database Firewall
+Task 0.1: Raw TCP proxy (transparent pass-through, no interception yet).
+
+Architecture
+------------
+Client  ──TCP──►  WeirProxy :5433  ──TCP──►  PostgreSQL :5432
+                      │                            │
+                  client_reader               server_reader
+                  client_writer               server_writer
+                      │◄──────── pipe() ──────────►│
+
+Each accepted connection spawns two concurrent pipe() coroutines:
+  • client → server  (forwards client bytes upstream)
+  • server → client  (forwards server bytes downstream)
+
+Both pipes run until either side closes the connection, at which
+point the other side is cleanly shut down.
+"""
 
 import asyncio
 import logging
@@ -6,7 +26,11 @@ import sys
 from typing import Optional
 
 from config import ProxyConfig, load_config
+from interceptor import intercept_pipe
 
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,11 +39,16 @@ logging.basicConfig(
 )
 log = logging.getLogger("weir.proxy")
 
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 
 CHUNK_SIZE = 65_536  # 64 KiB — matches PostgreSQL's default send buffer
 
 
-
+# ---------------------------------------------------------------------------
+# Core plumbing
+# ---------------------------------------------------------------------------
 
 
 async def pipe(
@@ -96,7 +125,7 @@ async def handle_connection(
     downstream_label = f"[upstream → {client_addr}]"
 
     await asyncio.gather(
-        pipe(client_reader, server_writer, upstream_label),
+        intercept_pipe(client_reader, server_writer, upstream_label),
         pipe(server_reader, client_writer, downstream_label),
         return_exceptions=True,
     )
@@ -104,6 +133,9 @@ async def handle_connection(
     log.info("Connection closed  client=%s", client_addr)
 
 
+# ---------------------------------------------------------------------------
+# Server lifecycle
+# ---------------------------------------------------------------------------
 
 
 async def run_proxy(cfg: ProxyConfig) -> None:
@@ -144,6 +176,9 @@ def _install_signal_handlers(loop: asyncio.AbstractEventLoop) -> None:
         loop.add_signal_handler(sig, _shutdown, sig)
 
 
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
 
 def main() -> None:
