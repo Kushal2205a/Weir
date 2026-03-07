@@ -15,6 +15,9 @@ from typing import Optional
 import sqlglot
 import sqlglot.expressions as exp
 
+from config import ProxyConfig
+from dry_run import run_dry_run
+
 log = logging.getLogger("weir.interceptor")
 
 CHUNK_SIZE = 65_536
@@ -158,14 +161,14 @@ async def intercept_pipe(
     client_reader: asyncio.StreamReader,
     server_writer: asyncio.StreamWriter,
     label: str,
+    cfg: ProxyConfig,
 ) -> None:
     """
     Replacement for pipe() in the client→server direction.
 
     Reads each chunk from *client_reader*, inspects it for SQL Query messages,
-    logs any destructive queries, then forwards the original bytes unchanged to
-    *server_writer*.  The wire bytes are never modified in Task 0.2 — actual
-    hold-and-approve logic arrives in Task 0.3.
+    runs a dry-run preview for any destructive query, then forwards the original
+    bytes unchanged to *server_writer*. Actual hold-and-approve arrives in Task 0.5.
     """
     try:
         while True:
@@ -178,6 +181,12 @@ async def intercept_pipe(
                 classification, query_type = classify(sql)
                 if classification == DESTRUCTIVE:
                     log.warning("INTERCEPTED %s: %.120s", query_type, sql)
+                    result = await run_dry_run(sql, query_type, cfg)
+                    log.warning(
+                        "DRY RUN RESULT: affected=%d tables=%s",
+                        result["affected_count"],
+                        result["tables_affected"],
+                    )
 
             server_writer.write(data)
             await server_writer.drain()

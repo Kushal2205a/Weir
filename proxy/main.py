@@ -125,7 +125,7 @@ async def handle_connection(
     downstream_label = f"[upstream → {client_addr}]"
 
     await asyncio.gather(
-        intercept_pipe(client_reader, server_writer, upstream_label),
+        intercept_pipe(client_reader, server_writer, upstream_label, cfg),
         pipe(server_reader, client_writer, downstream_label),
         return_exceptions=True,
     )
