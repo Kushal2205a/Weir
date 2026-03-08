@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Weir — Intercepts{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* ── Intercept cards ── */
+.intercept-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  animation: slide-in 0.2s ease;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 3px;
+}
+
+.badge-pending { background: var(--red-dim);   color: var(--red);   }
+.badge-type    { background: var(--bg);         color: var(--text-muted); border: 1px solid var(--border-lit); }
+
+.card-age {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.card-impact {
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.55;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Collapsible toggles ── */
+.card-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.toggle {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle summary {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.toggle summary::before {
+  content: '▶  ';
+  font-size: 0.6rem;
+}
+
+.toggle[open] summary::before { content: '▼  '; }
+.toggle summary:hover { color: var(--text); }
+
+.code-block {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--bg);
+  padding: 0.85rem 0.75rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-top: 1px solid var(--border);
+}
+
+.rows-block {
+  padding: 0.6rem 0.75rem;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.row-entry {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.rows-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 0.6rem 0.75rem;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+/* ── Action buttons ── */
+.card-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-block,
+.btn-allow {
+  flex: 1;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-head);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn-block:hover, .btn-allow:hover  { opacity: 0.85; }
+.btn-block:active, .btn-allow:active { transform: scale(0.98); }
+
+.btn-block { background: var(--red);   color: #fff; }
+.btn-allow { background: var(--green); color: #0A2E18; }
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+
+.empty-icon {
+  font-size: 1.5rem;
+  opacity: 0.4;
+}
+
+/* ── History table ── */
+.history-section { margin-top: 3rem; }
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.history-table th {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 0 0.75rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-table td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  vertical-align: top;
+}
+
+.history-table td.impact-cell {
+  color: var(--text);
+  max-width: 320px;
+}
+
+.history-table tbody tr:hover td {
+  background: var(--bg-card);
+}
+
+.badge-approved { background: var(--green-dim); color: var(--green); }
+.badge-blocked  { background: var(--red-dim);   color: var(--red);   }
+.badge-timeout  { background: #1A1A28;           color: var(--grey);  }
+
+.ts {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="section-label">Pending</div>
+
+<div id="pending-section"
+     hx-get="/intercepts/pending"
+     hx-trigger="every 2s"
+     hx-target="#pending-section"
+     hx-swap="innerHTML">
+  {% include "_pending.html" %}
+</div>
+
+<div class="history-section">
+  <div class="section-label">History</div>
+
+  {% if history %}
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Type</th>
+        <th>Table</th>
+        <th>Status</th>
+        <th>Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in history %}
+      <tr>
+        <td class="ts">{{ item.created_at[:19].replace("T", " ") }}</td>
+        <td>
+          <span class="badge badge-type">{{ item.query_type }}</span>
+        </td>
+        <td class="ts">
+          {% if item.dry_run and item.dry_run.tables_affected %}
+            {{ item.dry_run.tables_affected[0] }}
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if item.status == "approved" %}
+            <span class="badge badge-approved">ALLOWED</span>
+          {% elif item.status == "blocked" %}
+            <span class="badge badge-blocked">BLOCKED</span>
+          {% else %}
+            <span class="badge badge-timeout">TIMEOUT</span>
+          {% endif %}
+        </td>
+        <td class="impact-cell">{{ item.impact[:80] }}{% if item.impact|length > 80 %}…{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">No history yet.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

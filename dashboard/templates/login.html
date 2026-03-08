@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Weir — Sign in{% endblock %}
+
+{% block extra_styles %}
+<style>
+.login-wrap {
+  min-height: calc(100vh - 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--border-lit);
+  border-radius: 6px;
+  padding: 2.5rem;
+  background: var(--bg-card);
+}
+
+.login-heading {
+  font-family: var(--font-head);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.login-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.field-input {
+  display: block;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border-lit);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 0.65rem 0.85rem;
+  outline: none;
+  transition: border-color 0.15s;
+  margin-bottom: 1.25rem;
+}
+
+.field-input:focus {
+  border-color: var(--text-muted);
+}
+
+.btn-primary {
+  width: 100%;
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.75rem;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: opacity 0.15s;
+}
+
+.btn-primary:hover { opacity: 0.88; }
+
+#auth-feedback { margin-top: 1rem; min-height: 1.4rem; }
+
+.auth-success {
+  font-size: 0.85rem;
+  color: var(--green);
+  font-family: var(--font-mono);
+}
+
+.auth-error {
+  font-size: 0.85rem;
+  color: var(--red);
+  font-family: var(--font-mono);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<script>
+  // Supabase redirects to the Site URL (/login) with the token in the hash
+  // fragment when emailRedirectTo is not respected. Catch it here before render.
+  (function () {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const token = params.get("access_token");
+    if (token) {
+      window.location.href = "/auth/session?access_token=" + encodeURIComponent(token);
+    }
+  })();
+</script>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <h1 class="login-heading">Sign in to Weir</h1>
+    <p class="login-sub">Enter your email to receive a magic link.</p>
+
+    <form hx-post="/auth/login"
+          hx-target="#auth-feedback"
+          hx-swap="innerHTML"
+          hx-indicator="#auth-feedback">
+      <label class="field-label" for="email">Email address</label>
+      <input
+        class="field-input"
+        id="email"
+        name="email"
+        type="email"
+        placeholder="you@example.com"
+        autocomplete="email"
+        required
+      />
+      <button class="btn-primary" type="submit">Send magic link</button>
+    </form>
+
+    <div id="auth-feedback"></div>
+  </div>
+</div>
+{% endblock %}

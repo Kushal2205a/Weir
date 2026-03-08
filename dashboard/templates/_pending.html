@@ -1,0 +1,81 @@
+{% if pending %}
+  {% for item in pending %}
+  <div class="intercept-card" id="card-{{ item.id }}">
+    <div class="card-meta">
+      <span class="badge badge-pending">PENDING</span>
+      <span class="badge badge-type">{{ item.query_type }}</span>
+      <span class="card-age" data-created="{{ item.created_at }}">—</span>
+    </div>
+
+    <p class="card-impact">{{ item.impact }}</p>
+
+    <div class="card-toggles">
+      <details class="toggle">
+        <summary>Raw SQL</summary>
+        <pre class="code-block">{{ item.original_sql }}</pre>
+      </details>
+
+      {% if item.dry_run and item.dry_run.sample_rows %}
+      <details class="toggle">
+        <summary>Affected rows ({{ item.dry_run.affected_count }})</summary>
+        <div class="rows-block">
+          {% for row in item.dry_run.sample_rows[:5] %}
+          <div class="row-entry">{{ row }}</div>
+          {% endfor %}
+        </div>
+      </details>
+      {% else %}
+      <details class="toggle">
+        <summary>Affected rows ({{ item.dry_run.affected_count if item.dry_run else '?' }})</summary>
+        <p class="rows-empty">No sample rows captured.</p>
+      </details>
+      {% endif %}
+    </div>
+
+    <div class="card-actions">
+      <button class="btn-block"
+              hx-post="/intercepts/{{ item.id }}/block"
+              hx-target="#card-{{ item.id }}"
+              hx-swap="outerHTML">
+        BLOCK
+      </button>
+      <button class="btn-allow"
+              hx-post="/intercepts/{{ item.id }}/allow"
+              hx-target="#card-{{ item.id }}"
+              hx-swap="outerHTML">
+        ALLOW
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty-state">
+    <span class="empty-icon">◎</span>
+    <p>No pending intercepts. Your database is safe.</p>
+  </div>
+{% endif %}
+
+<script>
+  (function () {
+    function timeAgo(isoString) {
+      const created = new Date(isoString);
+      const seconds = Math.floor((Date.now() - created) / 1000);
+      if (seconds < 5)  return "just now";
+      if (seconds < 60) return seconds + " seconds ago";
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return minutes + " minute" + (minutes > 1 ? "s" : "") + " ago";
+      const hours = Math.floor(minutes / 60);
+      return hours + " hour" + (hours > 1 ? "s" : "") + " ago";
+    }
+
+    function updateAges() {
+      document.querySelectorAll(".card-age[data-created]").forEach(function (el) {
+        el.textContent = timeAgo(el.dataset.created);
+      });
+    }
+
+    updateAges();
+    // re-runs every 5s; HTMX polling every 2s refreshes the whole partial anyway
+    setInterval(updateAges, 5000);
+  })();
+</script>
