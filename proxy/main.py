@@ -27,6 +27,7 @@ from typing import Optional
 
 from config import ProxyConfig, load_config
 from interceptor import intercept_pipe
+from fingerprint import extract_application_name, new_session
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -94,7 +95,10 @@ async def handle_connection(
     then bridge them with two concurrent pipe() tasks.
     """
     client_addr = client_writer.get_extra_info("peername", "<unknown>")
+    client_ip = client_addr[0] if isinstance(client_addr, tuple) else str(client_addr)
     log.info("New connection  client=%s", client_addr)
+
+    session = new_session(client_ip)
 
     server_reader: Optional[asyncio.StreamReader] = None
     server_writer: Optional[asyncio.StreamWriter] = None
@@ -119,13 +123,29 @@ async def handle_connection(
         client_writer.close()
         return
 
+    # Peek at the first chunk to extract application_name from the PG startup message.
+    # We read it here before handing off to intercept_pipe so the session is populated
+    # before the first query arrives.
+    try:
+        startup_data = await asyncio.wait_for(client_reader.read(CHUNK_SIZE), timeout=5.0)
+        if startup_data:
+            session["application_name"] = extract_application_name(startup_data)
+            log.info("Session app_name=%r  client=%s", session["application_name"], client_addr)
+            # Forward the startup bytes upstream — the server needs them for auth
+            server_writer.write(startup_data)
+            await server_writer.drain()
+        else:
+            startup_data = b""
+    except Exception:
+        startup_data = b""
+
     # Run both directions concurrently; whichever finishes first will
     # close its writer, which causes the other pipe to detect EOF and exit.
     upstream_label = f"[{client_addr} → upstream]"
     downstream_label = f"[upstream → {client_addr}]"
 
     await asyncio.gather(
-        intercept_pipe(client_reader, server_writer, upstream_label, cfg),
+        intercept_pipe(client_reader, server_writer, upstream_label, cfg, session),
         pipe(server_reader, client_writer, downstream_label),
         return_exceptions=True,
     )

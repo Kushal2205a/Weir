@@ -18,6 +18,7 @@ import sqlglot.expressions as exp
 from config import ProxyConfig
 from dry_run import run_dry_run
 from approval import request_approval
+from fingerprint import record_query
 
 log = logging.getLogger("weir.interceptor")
 
@@ -105,7 +106,7 @@ def _classify_with_ast(sql: str) -> Optional[tuple[str, str]]:
     if isinstance(statement, exp.TruncateTable):
         return DESTRUCTIVE, "TRUNCATE"
 
-    if isinstance(statement, exp.AlterTable):
+    if isinstance(statement, exp.Alter):
         for action in statement.args.get("actions", []):
             if isinstance(action, exp.Drop):
                 # ALTER TABLE ... DROP COLUMN
@@ -163,6 +164,7 @@ async def intercept_pipe(
     server_writer: asyncio.StreamWriter,
     label: str,
     cfg: ProxyConfig,
+    session: dict,
 ) -> None:
     """
     Replacement for pipe() in the client→server direction.
@@ -181,16 +183,24 @@ async def intercept_pipe(
             should_forward = True
 
             for sql in parse_queries(data):
+                record_query(session)
                 classification, query_type = classify(sql)
+
                 if classification == DESTRUCTIVE:
-                    log.warning("INTERCEPTED %s: %.120s", query_type, sql)
+                    agent_classification = session["classification"]
+                    log.warning(
+                        "INTERCEPTED %s [%s]: %.120s",
+                        query_type, agent_classification, sql,
+                    )
                     dry = await run_dry_run(sql, query_type, cfg)
                     log.warning(
                         "DRY RUN RESULT: affected=%d tables=%s",
                         dry["affected_count"],
                         dry["tables_affected"],
                     )
-                    decision = await request_approval(sql, query_type, dry, cfg)
+                    decision = await request_approval(
+                        sql, query_type, dry, cfg, agent_classification
+                    )
 
                     if decision == "approved":
                         log.info("APPROVED — forwarding query")

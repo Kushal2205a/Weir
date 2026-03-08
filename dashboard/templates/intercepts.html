@@ -207,6 +207,9 @@
 .badge-approved { background: var(--green-dim); color: var(--green); }
 .badge-blocked  { background: var(--red-dim);   color: var(--red);   }
 .badge-timeout  { background: #1A1A28;           color: var(--grey);  }
+.badge-agent    { background: #1A0A2E; color: #A855F7; }
+.badge-likely   { background: #1A1200; color: var(--amber); }
+.badge-human    { background: #0A1A0A; color: var(--green); }
 
 .ts {
   font-family: var(--font-mono);
@@ -237,6 +240,7 @@
       <tr>
         <th>Time</th>
         <th>Type</th>
+        <th>Source</th>
         <th>Table</th>
         <th>Status</th>
         <th>Impact</th>
@@ -248,6 +252,15 @@
         <td class="ts">{{ item.created_at[:19].replace("T", " ") }}</td>
         <td>
           <span class="badge badge-type">{{ item.query_type }}</span>
+        </td>
+        <td>
+          {% if item.agent_classification == "AGENT" %}
+          <span class="badge badge-agent">🤖 AI</span>
+          {% elif item.agent_classification == "LIKELY_AGENT" %}
+          <span class="badge badge-likely">⚠ LIKELY</span>
+          {% else %}
+          <span class="badge badge-human">👤</span>
+          {% endif %}
         </td>
         <td class="ts">
           {% if item.dry_run and item.dry_run.tables_affected %}

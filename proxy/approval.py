@@ -38,6 +38,7 @@ async def _insert_intercept(
     dry_run_result: dict,
     impact: str,
     cfg: ProxyConfig,
+    agent_classification: str,
 ) -> str | None:
     """
     POST the intercept record to Supabase.
@@ -49,6 +50,7 @@ async def _insert_intercept(
         "impact": impact,
         "dry_run": dry_run_result,
         "status": "pending",
+        "agent_classification": agent_classification,
     }
 
     url = cfg.supabase_url + SUPABASE_INTERCEPTS_PATH
@@ -133,6 +135,7 @@ async def request_approval(
     query_type: str,
     dry_run_result: dict,
     cfg: ProxyConfig,
+    agent_classification: str = "UNKNOWN",
 ) -> str:
     """
     Insert a pending intercept into Supabase and wait for a developer decision.
@@ -155,7 +158,7 @@ async def request_approval(
 
     async with aiohttp.ClientSession() as session:
         intercept_id = await _insert_intercept(
-            session, sql, query_type, dry_run_result, impact, cfg
+            session, sql, query_type, dry_run_result, impact, cfg, agent_classification
         )
 
         if intercept_id is None:

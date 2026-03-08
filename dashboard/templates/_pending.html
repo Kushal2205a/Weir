@@ -4,6 +4,13 @@
     <div class="card-meta">
       <span class="badge badge-pending">PENDING</span>
       <span class="badge badge-type">{{ item.query_type }}</span>
+      {% if item.agent_classification == "AGENT" %}
+      <span class="badge badge-agent">AI AGENT</span>
+      {% elif item.agent_classification == "LIKELY_AGENT" %}
+      <span class="badge badge-likely">⚠ LIKELY AI</span>
+      {% else %}
+      <span class="badge badge-human">HUMAN</span>
+      {% endif %}
       <span class="card-age" data-created="{{ item.created_at }}">—</span>
     </div>
 
