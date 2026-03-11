@@ -3,7 +3,7 @@
 Weir sits between your AI agent and your PostgreSQL database. Every destructive
 query — `DELETE`, `DROP`, `TRUNCATE`, `ALTER DROP COLUMN`, `UPDATE` without
 `WHERE` — is intercepted, dry-run in a transaction, described in plain English,
-and held for your approval in a real-time dashboard.
+and held for your approval in a real-time dashboard
 
 ---
 
