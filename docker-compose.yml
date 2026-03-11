@@ -3,7 +3,7 @@ services:
   weir-proxy:
     build: ./proxy
     ports:
-      - "5433:5433"
+      - "5433:543"
     environment:
       - WEIR_API_KEY=${WEIR_API_KEY}
       - WEIR_DASHBOARD_URL=${WEIR_DASHBOARD_URL:-http://host.docker.internal:8000}
