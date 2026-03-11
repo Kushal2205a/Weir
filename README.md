@@ -1,4 +1,4 @@
-# Weir — Database Firewall for AI Agents
+# Weir - Database Firewall for AI Agents
 
 Weir sits between your AI agent and your PostgreSQL database. Every destructive
 query `DELETE`, `DROP`, `TRUNCATE`, `ALTER DROP COLUMN`, `UPDATE` without
