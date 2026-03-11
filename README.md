@@ -1,15 +1,15 @@
 # Weir — Database Firewall for AI Agents
 
 Weir sits between your AI agent and your PostgreSQL database. Every destructive
-query — `DELETE`, `DROP`, `TRUNCATE`, `ALTER DROP COLUMN`, `UPDATE` without
-`WHERE` — is intercepted, dry-run in a transaction, described in plain English,
-and held for your approval in a real-time dashboard
+query `DELETE`, `DROP`, `TRUNCATE`, `ALTER DROP COLUMN`, `UPDATE` without
+`WHERE` is intercepted, dry run in a transaction, described in plain English,
+and held for your approval in a realtime dashboard
 
 ---
 
 ## Quick Start (Docker)
 
-1. **Sign up** at [weir.dev](https://weir.dev) and copy your `wk_...` API key
+1. **Sign up** at [weir.dev](https://weir.dev) and copy your `wk_...` API key (CURRENTLY DOWN DUE TO MAINTENANCE COSTS)
    from the setup page.
 
 2. **Run the proxy** in front of your database:
@@ -73,9 +73,9 @@ Key variables:
 |---|---|---|
 | `WEIR_API_KEY` | proxy | Your `wk_...` key from the dashboard |
 | `WEIR_DASHBOARD_URL` | proxy | `http://localhost:8000` for local dev |
-| `WEIR_SERVICE_KEY` | proxy + dashboard | Supabase `service_role` key — never share |
-| `WEIR_SUPABASE_KEY` | dashboard | Supabase `anon` key — magic link emails only |
-| `WEIR_SECRET_KEY` | dashboard | Random hex — generate with `secrets.token_hex(32)` |
+| `WEIR_SERVICE_KEY` | proxy + dashboard | Supabase `service_role` key |
+| `WEIR_SUPABASE_KEY` | dashboard | Supabase `anon` key |
+| `WEIR_SECRET_KEY` | dashboard | Random hex generate with `secrets.token_hex(32)` |
 
 ### 3. Run Supabase migrations
 
@@ -102,43 +102,3 @@ http://localhost:8000/auth/dev-login
 
 ---
 
-## Architecture
-
-```
-Agent / psql
-    │
-    ▼ :5433
-┌─────────────┐
-│ Weir Proxy  │  asyncio TCP proxy
-│             │  • Intercepts Q messages
-│             │  • Classifies HUMAN/AGENT
-│             │  • Runs dry-run in savepoint
-│             │  POST /api/intercept
-└──────┬──────┘
-       │ X-API-Key: wk_...
-       ▼
-┌─────────────┐
-│  Dashboard  │  FastAPI + HTMX
-│             │  • Validates API key
-│             │  • Enforces quota
-│             │  • Writes to Supabase
-│             │  • Shows ALLOW/BLOCK UI
-└──────┬──────┘
-       │ service_role key
-       ▼
-┌─────────────┐
-│  Supabase   │  intercepts table
-└─────────────┘
-       │ polls every 500ms
-       ▲
-  Weir Proxy
-```
-
-## Pricing
-
-| Plan | Intercepts/mo | Price |
-|---|---|---|
-| Free | 50 | $0 |
-| Pro | Unlimited | $19/mo |
-
-Email [kushal@weir.dev](mailto:kushal@weir.dev) to upgrade.
