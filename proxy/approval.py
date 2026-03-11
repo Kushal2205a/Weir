@@ -1,14 +1,17 @@
 """
 proxy/approval.py
-Weir — Task 0.5: Approval gate.
+Weir — Approval gate.
 
-Inserts a pending intercept record into Supabase, then polls until a
-developer approves or blocks it from the dashboard, or until the
-configured timeout expires.
+Insert flow (Task 3.2):
+  proxy → POST {WEIR_DASHBOARD_URL}/api/intercept (X-API-Key: wk_...)
+        ← { id, over_quota }
+
+Poll flow (unchanged structurally):
+  proxy → GET Supabase /rest/v1/intercepts?id=eq.{id} (service_role key)
+        ← { status }
 """
 
 import asyncio
-import json
 import logging
 
 import aiohttp
@@ -22,51 +25,60 @@ POLL_INTERVAL_SECONDS = 0.5
 SUPABASE_INTERCEPTS_PATH = "/rest/v1/intercepts"
 
 
-def _supabase_headers(cfg: ProxyConfig) -> dict[str, str]:
+def _service_headers(cfg: ProxyConfig) -> dict[str, str]:
+    """Headers for direct Supabase calls using the service_role key."""
     return {
-        "apikey": cfg.supabase_key,
-        "Authorization": f"Bearer {cfg.supabase_key}",
+        "apikey": cfg.service_key,
+        "Authorization": f"Bearer {cfg.service_key}",
         "Content-Type": "application/json",
-        "Prefer": "return=representation",
     }
 
 
-async def _insert_intercept(
+async def _post_to_dashboard(
     session: aiohttp.ClientSession,
     sql: str,
     query_type: str,
     dry_run_result: dict,
     impact: str,
-    cfg: ProxyConfig,
     agent_classification: str,
-) -> str | None:
+    cfg: ProxyConfig,
+) -> tuple[str | None, bool]:
     """
-    POST the intercept record to Supabase.
-    Returns the new record's UUID, or None if the insert failed.
+    POST the intercept to the dashboard's /api/intercept endpoint.
+    Returns (intercept_id, over_quota). Returns (None, False) on failure.
+
+    The dashboard validates the api_key, enforces quota, and inserts
+    the record with the correct user_id — the proxy never touches
+    Supabase directly for inserts.
     """
+    url = f"{cfg.dashboard_url}/api/intercept"
     payload = {
         "query_type": query_type,
         "original_sql": sql,
         "impact": impact,
         "dry_run": dry_run_result,
-        "status": "pending",
         "agent_classification": agent_classification,
     }
-
-    url = cfg.supabase_url + SUPABASE_INTERCEPTS_PATH
     try:
-        async with session.post(url, headers=_supabase_headers(cfg), json=payload) as resp:
+        async with session.post(
+            url,
+            headers={"X-API-Key": cfg.api_key, "Content-Type": "application/json"},
+            json=payload,
+        ) as resp:
+            if resp.status == 401:
+                log.error("Invalid API key — check WEIR_API_KEY in .env")
+                return None, False
             if resp.status not in (200, 201):
                 body = await resp.text()
-                log.error("Supabase insert returned %d: %s", resp.status, body)
-                return None
+                log.error("Dashboard /api/intercept returned %d: %s", resp.status, body[:200])
+                return None, False
 
-            records = await resp.json()
-            return records[0]["id"]
+            data = await resp.json()
+            return data.get("id"), data.get("over_quota", False)
 
     except Exception as exc:
-        log.error("Supabase insert failed: %s", exc)
-        return None
+        log.error("Could not reach dashboard at %s: %s", cfg.dashboard_url, exc)
+        return None, False
 
 
 async def _poll_for_decision(
@@ -75,18 +87,18 @@ async def _poll_for_decision(
     cfg: ProxyConfig,
 ) -> str:
     """
-    Poll Supabase every 500 ms until the status leaves 'pending'
+    Poll Supabase every 500ms until the intercept status leaves 'pending'
     or the approval timeout expires.
 
-    Returns the final status string: "approved" | "blocked" | "timeout".
+    Uses the service_role key — this is internal Weir infrastructure,
+    not a user-facing call.
     """
     url = (
         cfg.supabase_url
         + SUPABASE_INTERCEPTS_PATH
         + f"?id=eq.{intercept_id}&select=status"
     )
-    # Strip the Prefer header for plain GET requests
-    headers = {k: v for k, v in _supabase_headers(cfg).items() if k != "Prefer"}
+    headers = _service_headers(cfg)
 
     elapsed = 0.0
     while elapsed < cfg.approval_timeout:
@@ -119,11 +131,14 @@ async def _mark_timeout(
     intercept_id: str,
     cfg: ProxyConfig,
 ) -> None:
-    """PATCH the intercept record to status='timeout' after the deadline expires."""
+    """PATCH the intercept record to status='timeout' using the service_role key."""
     url = cfg.supabase_url + SUPABASE_INTERCEPTS_PATH + f"?id=eq.{intercept_id}"
-    headers = {k: v for k, v in _supabase_headers(cfg).items() if k != "Prefer"}
     try:
-        async with session.patch(url, headers=headers, json={"status": "timeout"}) as resp:
+        async with session.patch(
+            url,
+            headers=_service_headers(cfg),
+            json={"status": "timeout"},
+        ) as resp:
             if resp.status not in (200, 204):
                 log.warning("Failed to mark intercept %s as timeout: %d", intercept_id, resp.status)
     except Exception as exc:
@@ -138,15 +153,19 @@ async def request_approval(
     agent_classification: str = "UNKNOWN",
 ) -> str:
     """
-    Insert a pending intercept into Supabase and wait for a developer decision.
+    Submit the intercept to the dashboard and wait for a developer decision.
 
     Returns "approved" | "blocked" | "timeout".
 
-    If Supabase is unreachable, logs a clear warning and returns "approved"
-    so Weir's own infrastructure failure never silently blocks a query.
+    Fail-open: if the dashboard or Supabase is unreachable, the query is
+    allowed through so Weir's infrastructure never silently blocks production.
     """
-    if not cfg.supabase_url or not cfg.supabase_key:
-        log.warning("Supabase unavailable — allowing query through (no credentials configured)")
+    if not cfg.api_key:
+        log.warning("No WEIR_API_KEY configured — allowing query through")
+        return "approved"
+
+    if not cfg.supabase_url or not cfg.service_key:
+        log.warning("Supabase not configured — allowing query through")
         return "approved"
 
     impact = generate_impact(
@@ -157,15 +176,21 @@ async def request_approval(
     )
 
     async with aiohttp.ClientSession() as session:
-        intercept_id = await _insert_intercept(
-            session, sql, query_type, dry_run_result, impact, cfg, agent_classification
+        intercept_id, over_quota = await _post_to_dashboard(
+            session, sql, query_type, dry_run_result, impact, agent_classification, cfg
         )
 
         if intercept_id is None:
-            log.warning("Supabase unavailable — allowing query through")
+            log.warning("Dashboard unavailable — allowing query through")
             return "approved"
 
-        log.info("Waiting for approval  intercept_id=%s  timeout=%ds", intercept_id, cfg.approval_timeout)
+        if over_quota:
+            log.warning("User is over free quota — intercept logged but forwarding")
+
+        log.info(
+            "Waiting for approval  intercept_id=%s  timeout=%ds",
+            intercept_id, cfg.approval_timeout,
+        )
 
         decision = await _poll_for_decision(session, intercept_id, cfg)
 

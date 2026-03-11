@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Weir — Setup{% endblock %}
+
+{% block extra_styles %}
+<style>
+.setup-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.setup-heading {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.setup-sub {
+  color: var(--text-muted);
+  margin-bottom: 3rem;
+}
+
+.step {
+  margin-bottom: 2.5rem;
+}
+
+.step-number {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 0.5rem;
+}
+
+.step-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.code-wrap {
+  position: relative;
+  background: #0A0A10;
+  border: 1px solid var(--border-lit);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.code-wrap pre {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: var(--border-lit);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.copy-btn:hover { background: var(--border-lit); color: var(--text); }
+.copy-btn.copied { color: var(--green); }
+
+.step-note {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding: 0.6rem 0.9rem;
+  border-left: 2px solid var(--border-lit);
+  margin-top: 0.5rem;
+}
+
+.port-compare {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.port-box {
+  background: #0A0A10;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.port-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.port-label.before { color: var(--text-muted); }
+.port-label.after  { color: var(--green); }
+
+.port-box code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.port-arrow {
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.done-btn {
+  display: inline-block;
+  margin-top: 2.5rem;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 5px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.done-btn:hover { opacity: 0.85; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="setup-wrap">
+  <h1 class="setup-heading">You're almost ready</h1>
+  <p class="setup-sub">Three steps to put Weir between your AI agent and your database.</p>
+
+  <!-- Step 1 -->
+  <div class="step">
+    <div class="step-number">Step 1</div>
+    <div class="step-title">Copy your Docker command</div>
+    <div class="code-wrap" id="docker-wrap">
+      <pre id="docker-cmd">docker run -d \
+  -e WEIR_API_KEY={{ api_key }} \
+  -e WEIR_TARGET_HOST=host.docker.internal \
+  -e WEIR_TARGET_PORT=5432 \
+  -p 5433:5433 \
+  weir/proxy:latest</pre>
+      <button class="copy-btn" onclick="copyCmd()">COPY</button>
+    </div>
+    <p class="step-note">
+      <strong>host.docker.internal</strong> points to your Mac/Windows localhost from inside Docker.
+      On Linux, use your machine's local IP address instead (e.g. <code>192.168.1.x</code>).
+    </p>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step">
+    <div class="step-number">Step 2</div>
+    <div class="step-title">Point your agent at port 5433</div>
+    <div class="port-compare">
+      <div class="port-box">
+        <div class="port-label before">Before</div>
+        <code>postgresql://user:pass@localhost:<strong>5432</strong>/db</code>
+      </div>
+      <span class="port-arrow">→</span>
+      <div class="port-box">
+        <div class="port-label after">After</div>
+        <code>postgresql://user:pass@localhost:<strong>5433</strong>/db</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step">
+    <div class="step-number">Step 3</div>
+    <div class="step-title">Watch this page</div>
+    <p style="color: var(--text-muted); line-height: 1.7;">
+      Run a destructive query from your agent — a <code>DELETE</code>, <code>DROP</code>, or
+      <code>UPDATE</code> without a <code>WHERE</code> clause. It will appear here within
+      2 seconds, held for your approval.
+    </p>
+  </div>
+
+  <a href="/intercepts" class="done-btn">I've done this → Go to Dashboard</a>
+</div>
+
+<script>
+function copyCmd() {
+  const text = document.getElementById("docker-cmd").textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    const btn = document.querySelector(".copy-btn");
+    btn.textContent = "COPIED";
+    btn.classList.add("copied");
+    setTimeout(function() {
+      btn.textContent = "COPY";
+      btn.classList.remove("copied");
+    }, 2000);
+  });
+}
+</script>
+{% endblock %}

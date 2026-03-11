@@ -216,10 +216,40 @@
   font-size: 0.7rem;
   white-space: nowrap;
 }
+
+.usage-banner {
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.usage-banner a {
+  margin-left: auto;
+  font-weight: 600;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.banner-warn { background: #1A1200; color: var(--amber); border: 1px solid var(--amber); }
+.banner-over { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
 </style>
 {% endblock %}
 
 {% block content %}
+
+{% if usage and usage.intercept_count >= 45 %}
+<div class="usage-banner {% if usage.intercept_count >= 50 %}banner-over{% else %}banner-warn{% endif %}">
+  {% if usage.intercept_count >= 50 %}
+    You've used all 50 free intercepts this month.
+    <a href="/upgrade">Upgrade to Pro — $19/mo</a>
+  {% else %}
+    {{ usage.intercept_count }}/50 free intercepts used this month.
+    <a href="/upgrade">Upgrade to Pro</a>
+  {% endif %}
+</div>
+{% endif %}
 
 <div class="section-label">Pending</div>
 

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Weir — Upgrade to Pro{% endblock %}
+
+{% block extra_styles %}
+<style>
+.upgrade-wrap {
+  max-width: 500px;
+  margin: 4rem auto;
+  text-align: center;
+}
+.upgrade-heading {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.upgrade-sub {
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+.upgrade-price {
+  font-family: var(--font-heading);
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--red);
+  margin-bottom: 0.25rem;
+}
+.upgrade-price span {
+  font-size: 1rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.upgrade-email {
+  display: inline-block;
+  margin-top: 1.5rem;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 5px;
+  text-decoration: none;
+}
+.upgrade-email:hover { opacity: 0.85; }
+.upgrade-note {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upgrade-wrap">
+  <div class="upgrade-price">$19 <span>/ month</span></div>
+  <h1 class="upgrade-heading">Upgrade to Pro</h1>
+  <p class="upgrade-sub">
+    Unlimited intercepts, team seats, Slack notifications,
+    and priority support. Stripe integration coming soon —
+    email us to upgrade manually today.
+  </p>
+  <a href="mailto:kushal@weir.dev?subject=Upgrade to Pro" class="upgrade-email">
+    Email kushal@weir.dev
+  </a>
+  <p class="upgrade-note">We'll reply within 24 hours and activate your plan immediately.</p>
+</div>
+{% endblock %}
