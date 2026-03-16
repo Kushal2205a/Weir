@@ -2,7 +2,7 @@
 
 A TCP proxy that sits in front of PostgreSQL and intercepts destructive queries before they execute. Every `DELETE`, `DROP`, `TRUNCATE`, or `UPDATE` without a `WHERE` clause gets held for manual approval in a web dashboard. The query only goes through if you click Allow.
 
-![Weir dashboard showing a pending DELETE intercept with BLOCK and ALLOW buttons](screenshots_Weir.png)
+![Weir dashboard showing a pending DELETE intercept with BLOCK and ALLOW buttons](assets/screenshots_Weir.png)
 
 ## How it works
 
