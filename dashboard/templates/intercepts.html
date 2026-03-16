@@ -3,7 +3,6 @@
 
 {% block extra_styles %}
 <style>
-/* ── Intercept cards ── */
 .intercept-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -36,8 +35,14 @@
   border-radius: 3px;
 }
 
-.badge-pending { background: var(--red-dim);   color: var(--red);   }
-.badge-type    { background: var(--bg);         color: var(--text-muted); border: 1px solid var(--border-lit); }
+.badge-pending  { background: var(--red-dim);   color: var(--red); }
+.badge-type     { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border-lit); }
+.badge-agent    { background: #1A0A2E; color: #A855F7; }
+.badge-likely   { background: #1A1200; color: var(--amber); }
+.badge-human    { background: #0A1A0A; color: var(--green); }
+.badge-approved { background: var(--green-dim); color: var(--green); }
+.badge-blocked  { background: var(--red-dim);   color: var(--red); }
+.badge-timeout  { background: #1A1A28;           color: var(--grey); }
 
 .card-age {
   font-family: var(--font-mono);
@@ -54,7 +59,6 @@
   margin-bottom: 1.25rem;
 }
 
-/* ── Collapsible toggles ── */
 .card-toggles {
   display: flex;
   flex-direction: column;
@@ -76,14 +80,9 @@
   cursor: pointer;
   list-style: none;
   user-select: none;
-  transition: color 0.15s;
 }
 
-.toggle summary::before {
-  content: '▶  ';
-  font-size: 0.6rem;
-}
-
+.toggle summary::before { content: '▶  '; font-size: 0.6rem; }
 .toggle[open] summary::before { content: '▼  '; }
 .toggle summary:hover { color: var(--text); }
 
@@ -124,14 +123,9 @@
   border-top: 1px solid var(--border);
 }
 
-/* ── Action buttons ── */
-.card-actions {
-  display: flex;
-  gap: 0.75rem;
-}
+.card-actions { display: flex; gap: 0.75rem; }
 
-.btn-block,
-.btn-allow {
+.btn-block, .btn-allow {
   flex: 1;
   border: none;
   border-radius: 4px;
@@ -141,16 +135,13 @@
   letter-spacing: 0.06em;
   padding: 0.7rem 1rem;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
+  transition: opacity 0.15s;
 }
-
-.btn-block:hover, .btn-allow:hover  { opacity: 0.85; }
-.btn-block:active, .btn-allow:active { transform: scale(0.98); }
 
 .btn-block { background: var(--red);   color: #fff; }
 .btn-allow { background: var(--green); color: #0A2E18; }
+.btn-block:hover, .btn-allow:hover { opacity: 0.85; }
 
-/* ── Empty state ── */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -163,12 +154,8 @@
   border-radius: 6px;
 }
 
-.empty-icon {
-  font-size: 1.5rem;
-  opacity: 0.4;
-}
+.empty-icon { font-size: 1.5rem; opacity: 0.4; }
 
-/* ── History table ── */
 .history-section { margin-top: 3rem; }
 
 .history-table {
@@ -195,61 +182,14 @@
   vertical-align: top;
 }
 
-.history-table td.impact-cell {
-  color: var(--text);
-  max-width: 320px;
-}
+.history-table td.impact-cell { color: var(--text); max-width: 320px; }
+.history-table tbody tr:hover td { background: var(--bg-card); }
 
-.history-table tbody tr:hover td {
-  background: var(--bg-card);
-}
-
-.badge-approved { background: var(--green-dim); color: var(--green); }
-.badge-blocked  { background: var(--red-dim);   color: var(--red);   }
-.badge-timeout  { background: #1A1A28;           color: var(--grey);  }
-.badge-agent    { background: #1A0A2E; color: #A855F7; }
-.badge-likely   { background: #1A1200; color: var(--amber); }
-.badge-human    { background: #0A1A0A; color: var(--green); }
-
-.ts {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  white-space: nowrap;
-}
-
-.usage-banner {
-  padding: 0.6rem 1rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.usage-banner a {
-  margin-left: auto;
-  font-weight: 600;
-  text-decoration: underline;
-  white-space: nowrap;
-}
-.banner-warn { background: #1A1200; color: var(--amber); border: 1px solid var(--amber); }
-.banner-over { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+.ts { font-family: var(--font-mono); font-size: 0.7rem; white-space: nowrap; }
 </style>
 {% endblock %}
 
 {% block content %}
-
-{% if usage and usage.intercept_count >= 45 %}
-<div class="usage-banner {% if usage.intercept_count >= 50 %}banner-over{% else %}banner-warn{% endif %}">
-  {% if usage.intercept_count >= 50 %}
-    You've used all 50 free intercepts this month.
-    <a href="/upgrade">Upgrade to Pro — $19/mo</a>
-  {% else %}
-    {{ usage.intercept_count }}/50 free intercepts used this month.
-    <a href="/upgrade">Upgrade to Pro</a>
-  {% endif %}
-</div>
-{% endif %}
 
 <div class="section-label">Pending</div>
 
@@ -280,16 +220,14 @@
       {% for item in history %}
       <tr>
         <td class="ts">{{ item.created_at[:19].replace("T", " ") }}</td>
-        <td>
-          <span class="badge badge-type">{{ item.query_type }}</span>
-        </td>
+        <td><span class="badge badge-type">{{ item.query_type }}</span></td>
         <td>
           {% if item.agent_classification == "AGENT" %}
-          <span class="badge badge-agent">🤖 AI</span>
+            <span class="badge badge-agent">🤖 AI</span>
           {% elif item.agent_classification == "LIKELY_AGENT" %}
-          <span class="badge badge-likely">⚠ LIKELY</span>
+            <span class="badge badge-likely">⚠ LIKELY</span>
           {% else %}
-          <span class="badge badge-human">👤</span>
+            <span class="badge badge-human">👤</span>
           {% endif %}
         </td>
         <td class="ts">
