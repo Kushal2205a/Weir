@@ -125,12 +125,9 @@
 <body>
   <nav>
     <a href="/intercepts" class="nav-logo">Weir</a>
-    {% if email is defined and email %}
     <div class="nav-user">
-      <span>{{ email }}</span>
-      <a href="/auth/logout">logout</a>
+      <span style="color: var(--green); font-size: 0.75rem;">● LIVE</span>
     </div>
-    {% endif %}
   </nav>
 
   <main class="page">
