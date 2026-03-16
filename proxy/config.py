@@ -1,11 +1,9 @@
 """
-proxy/config.py
-Loads Weir proxy configuration from environment variables.
+proxy/config.py — Weir local edition
 """
 
 import os
 from dataclasses import dataclass
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,48 +18,25 @@ class ProxyConfig:
     target_db: str
     target_user: str
     target_password: str
-    supabase_url: str
-    service_key: str      # Weir's service_role key — never given to users
-    api_key: str          # User's personal wk_... key — authenticates proxy→dashboard
-    dashboard_url: str    # Where the proxy POSTs intercepts (local or prod)
+    dashboard_url: str
     approval_timeout: int
 
     def __str__(self) -> str:
         return (
             f"Weir Proxy  listen={self.listen_host}:{self.listen_port}  "
-            f"→  target={self.target_user}@{self.target_host}:{self.target_port}/{self.target_db}"
+            f"→  {self.target_user}@{self.target_host}:{self.target_port}/{self.target_db}"
         )
 
 
 def load_config() -> ProxyConfig:
-    """
-    Read configuration from environment variables.
-
-    Required env vars (with defaults):
-        WEIR_LISTEN_HOST      – interface to bind on              (default: 0.0.0.0)
-        WEIR_LISTEN_PORT      – port to listen on                 (default: 5433)
-        WEIR_TARGET_HOST      – upstream PostgreSQL host          (default: localhost)
-        WEIR_TARGET_PORT      – upstream PostgreSQL port          (default: 5432)
-        WEIR_TARGET_DB        – upstream database name            (default: postgres)
-        WEIR_TARGET_USER      – upstream database user            (default: postgres)
-        WEIR_TARGET_PASSWORD  – upstream database password        (default: "")
-        WEIR_SUPABASE_URL     – Supabase project URL              (default: "")
-        WEIR_SERVICE_KEY      – Supabase service_role key         (default: "")
-        WEIR_API_KEY          – User's wk_... API key             (default: "")
-        WEIR_DASHBOARD_URL    – Dashboard base URL for /api/      (default: http://localhost:8000)
-        WEIR_APPROVAL_TIMEOUT – seconds before auto-timeout       (default: 60)
-    """
     return ProxyConfig(
         listen_host=os.getenv("WEIR_LISTEN_HOST", "0.0.0.0"),
-        listen_port=int(os.getenv("WEIR_LISTEN_PORT", "5433")),
+        listen_port=int(os.getenv("WEIR_LISTEN_PORT", "5455")),
         target_host=os.getenv("WEIR_TARGET_HOST", "localhost"),
         target_port=int(os.getenv("WEIR_TARGET_PORT", "5432")),
         target_db=os.getenv("WEIR_TARGET_DB", "postgres"),
         target_user=os.getenv("WEIR_TARGET_USER", "postgres"),
         target_password=os.getenv("WEIR_TARGET_PASSWORD", ""),
-        supabase_url=os.getenv("WEIR_SUPABASE_URL", ""),
-        service_key=os.getenv("WEIR_SERVICE_KEY", ""),
-        api_key=os.getenv("WEIR_API_KEY", ""),
         dashboard_url=os.getenv("WEIR_DASHBOARD_URL", "http://localhost:8000"),
         approval_timeout=int(os.getenv("WEIR_APPROVAL_TIMEOUT", "60")),
     )
