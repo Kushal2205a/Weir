@@ -1,8 +1,8 @@
-# Weir
+# Weir - Database Security Layer for AI Agents 
 
 A TCP proxy that sits in front of PostgreSQL and intercepts destructive queries before they execute. Every `DELETE`, `DROP`, `TRUNCATE`, or `UPDATE` without a `WHERE` clause gets held for manual approval in a web dashboard. The query only goes through if you click Allow.
 
-![Weir dashboard showing a pending DELETE intercept with BLOCK and ALLOW buttons](screenshots_Weir.png)
+![The dashboard showing a pending DELETE intercept with BLOCK and ALLOW buttons](screenshots.png)
 
 ## How it works
 
@@ -20,7 +20,7 @@ The proxy also tracks whether a session looks like it's coming from an agent or 
 **Prerequisites:** Docker Desktop, PostgreSQL running locally.
 
 ```bash
-git clone https://github.com/Kushal2205a/Weir
+git clone https://github.com/Kushal2205a/database-security-layer-for-ai-agents
 cd Weir
 cp .env.example .env
 ```
@@ -78,7 +78,7 @@ Each connection gets scored across four signals:
 - 3 or more queries arrive within a 500ms window (+20)
 - More than 10 queries on a single connection (+15)
 
-Score 60+ → `AGENT`. Score 30–59 → `LIKELY AI`. Under 30 → `HUMAN`. The badge shows up on every pending card and in the history table.
+Score 60+ -> `AGENT`. Score 30–59 -> `LIKELY AI`. Under 30 -> `HUMAN`. The badge shows up on every pending card and in the history table.
 
 ## Running without Docker
 
