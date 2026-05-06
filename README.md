@@ -96,6 +96,6 @@ python main.py
 
 ## Stack
 
-- **Proxy** — Python asyncio, sqlglot, asyncpg, aiohttp
-- **Dashboard** — FastAPI, HTMX, Jinja2, aiosqlite
-- **Storage** — SQLite (zero config, file created on first run)
+- **Proxy** - Python asyncio, sqlglot, asyncpg, aiohttp
+- **Dashboard** - FastAPI, HTMX, Jinja2, aiosqlite
+- **Storage** - SQLite (zero config, file created on first run)
